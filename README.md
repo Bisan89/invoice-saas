@@ -1,36 +1,42 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Invoice SaaS — تتبّع فروقات أسعار فواتير الشراء
 
-## Getting Started
+نظام SaaS يسجّل كل حساب فواتير الشراء الخاصة فيه (رفع صورة/PDF أو إدخال يدوي)،
+ويقارن سعر كل منتج بآخر سعر سُجّل له من نفس المورد.
 
-First, run the development server:
+## البنية
+- **Next.js App Router** (واجهة + API routes)
+- **Turso/libSQL** — قاعدة بيانات مشتركة، معزولة بـ`account_id` بكل جدول (كل حساب يشوف بياناته بس)
+- **Supabase Auth** — تسجيل حسابات/دخول لكل زبون
+- **Anthropic API (Claude)** — قراءة صورة/PDF الفاتورة واستخراج المورد والبنود تلقائياً
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## الإعداد الأول
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+1. نسخ `.env.example` إلى `.env.local` وتعبئة القيم:
+   - `DATABASE_URL` / `DATABASE_AUTH_TOKEN` — من لوحة Turso
+   - `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` — من إعدادات مشروع Supabase (API)
+   - `ANTHROPIC_API_KEY` — مفتاح API من console.anthropic.com
+   - `MIGRATE_SECRET` — أي نص عشوائي طويل من اختيارك
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+2. رفع نفس المتغيرات لإعدادات المشروع بـVercel (Environment Variables) قبل أي نشر.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+3. بعد أول نشر (أو أي نشر فيه تعديل بـ`lib/migrations.ts`)، فتح هالرابط بالمتصفح مرة وحدة
+   لإنشاء/تحديث جداول قاعدة البيانات (بدون الحاجة لتشغيل أي سكربت محلي):
 
-## Learn More
+   ```
+   https://<اسم-تطبيقك>.vercel.app/api/admin/migrate?secret=<MIGRATE_SECRET>
+   ```
 
-To learn more about Next.js, take a look at the following resources:
+4. بإعدادات Supabase Authentication، مفيد تعطيل "Confirm email" مؤقتاً وقت التجربة الأولى
+   (أو تأكيد وصول رابط التفعيل قبل تسجيل الدخول).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## طريقة الاستخدام
+- إنشاء حساب من `/signup` بالبريد واسم الشركة
+- من `/invoices/create`: رفع صورة/PDF الفاتورة (بيتعبّى المورد والبنود تلقائياً) أو تعبئتها يدوياً، ثم مراجعة وحفظ
+- من `/dashboard`: قائمة كل الفواتير + تنبيه فوري لأي منتج ارتفع سعره عن آخر فاتورة لنفس المورد
+- من صفحة أي فاتورة: جدول مقارنة كامل (سعر حالي / سعر سابق / نسبة التغيير) لكل بند
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## ملاحظة على منطق المطابقة
+مطابقة "نفس المورد" بتصير على اسم المورد بعد توحيد الصيغة (`lib/normalize.ts`: حذف مسافات
+زايدة + توحيد حالة الأحرف) — مش مطابقة نصية حرفية. لو انكتب اسم نفس المورد بشكل مختلف كتير
+بين فاتورة وفاتورة، ممكن يتسجّل كمورد جديد بالخطأ؛ الحل بهيك حالة مراجعة اسم المورد بالنموذج
+قبل الحفظ والتأكد إنه مطابق للمرات السابقة.
