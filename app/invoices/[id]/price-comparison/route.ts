@@ -21,13 +21,7 @@ export async function GET(
       return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
     }
 
-    const invoice = invoiceResult.rows[0] as {
-      id: string;
-      user_id: string;
-      client_id: string;
-      supplier_id: string;
-      total_amount: number;
-    };
+    const invoice = invoiceResult.rows[0] as any;
 
     // Get invoice items
     const itemsQuery = `
@@ -38,15 +32,15 @@ export async function GET(
     const itemsResult = await db.execute(itemsQuery, [id]);
 
     const items = (itemsResult.rows || []).map((row: any) => ({
-      id: row.id as string,
-      product_name: row.product_name as string,
-      unit_price: row.unit_price as number,
-      quantity: row.quantity as number,
+      id: row.id,
+      product_name: row.product_name,
+      unit_price: row.unit_price,
+      quantity: row.quantity,
     }));
 
     // Get price history for comparison
     const comparisons = await Promise.all(
-      items.map(async (item) => {
+      items.map(async (item: any) => {
         const priceQuery = `
           SELECT price, recorded_date
           FROM price_history
@@ -59,10 +53,9 @@ export async function GET(
           item.product_name,
         ]);
 
-        const oldestPrice =
-          priceResult.rows && priceResult.rows.length > 0
-            ? (priceResult.rows[0] as { price: number; recorded_date: string })
-            : null;
+        const oldestPrice = priceResult.rows && priceResult.rows.length > 0
+          ? (priceResult.rows[0] as any)
+          : null;
 
         const currentPrice = item.unit_price;
         const previousPrice = oldestPrice?.price || currentPrice;
