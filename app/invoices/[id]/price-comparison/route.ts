@@ -6,10 +6,8 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Await the params
     const { id } = await params;
 
-    // Get invoice details
     const invoiceQuery = `
       SELECT id, user_id, client_id, supplier_id, total_amount
       FROM invoices
@@ -23,7 +21,6 @@ export async function GET(
 
     const invoice = invoiceResult.rows[0] as any;
 
-    // Get invoice items
     const itemsQuery = `
       SELECT id, product_name, unit_price, quantity
       FROM invoice_items
@@ -38,7 +35,6 @@ export async function GET(
       quantity: row.quantity,
     }));
 
-    // Get price history for comparison
     const comparisons = await Promise.all(
       items.map(async (item: any) => {
         const priceQuery = `
@@ -53,9 +49,10 @@ export async function GET(
           item.product_name,
         ]);
 
-        const oldestPrice = priceResult.rows && priceResult.rows.length > 0
-          ? (priceResult.rows[0] as any)
-          : null;
+        const oldestPrice =
+          priceResult.rows && priceResult.rows.length > 0
+            ? (priceResult.rows[0] as any)
+            : null;
 
         const currentPrice = item.unit_price;
         const previousPrice = oldestPrice?.price || currentPrice;
