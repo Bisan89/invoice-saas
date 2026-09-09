@@ -189,6 +189,17 @@ export default function InvoiceForm() {
             {loading ? "جاري الإنشاء..." : "✅ إنشاء الفاتورة"}
           </button>
         </form>
-
         {invoiceId && (
-          <div className="mt-6 p-4 bg-green-100 border border-green-
+          <div className="mt-6 p-4 bg-green-100 border border-green-400 rounded-lg text-green-800">
+            <p className="text-lg font-semibold">
+              ✅ تم إنشاء الفاتورة بنجاح!
+            </p>
+            <p className="text-base mt-2">
+              رقم الفاتورة: <span className="font-bold text-green-900">{invoiceId}</span>
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
